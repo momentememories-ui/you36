@@ -137,19 +137,29 @@
         .inv-slot.filled { background: white; border: 2px solid var(--primary); }
         .inv-slot.filled img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Modal Preview */
+        /* Modal Preview (เพิ่ม Smooth Transition) */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); z-index: 100;
             display: none; align-items: center; justify-content: center;
             backdrop-filter: blur(5px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.show-modal {
+            display: flex;
+            opacity: 1;
         }
         .modal-card {
             background: white; padding: 15px 15px 30px 15px;
             border-radius: 10px; 
             max-width: 280px; text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            animation: zoomIn 0.3s ease;
+            transform: scale(0.7);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-overlay.show-modal .modal-card {
+            transform: scale(1);
         }
         .modal-card img { width: 100%; border-radius: 3px; margin-bottom: 10px; }
         .btn-keep {
@@ -158,7 +168,6 @@
             font-size: 1rem; cursor: pointer; margin-top: 15px;
             box-shadow: 0 5px 10px rgba(255, 92, 138, 0.4);
         }
-        @keyframes zoomIn { from { transform: scale(0.5); } to { transform: scale(1); } }
 
         /* --- FINAL MESSAGE (Slow Animation) --- */
         .final-msg-container {
@@ -211,11 +220,11 @@
                 <div class="wing left"></div><div class="env-body">💌</div><div class="wing right"></div>
             </div>
         </div>
-        <div class="music-hint">🎵 แตะหน้าจอเพื่อเริ่ม 🎵</div>
+        <div class="music-hint">🎵 แแตะหน้าจอเพื่อเริ่ม 🎵</div>
     </div>
 
     <div id="page2" class="page">
-        <h2 style="margin-bottom:20px;">เราคบกันมา...</h2>
+        <h2 style="margin-bottom:20px;">เรารักกันมา</h2>
         <div class="timer-display" id="timer">คำนวณเวลา...</div>
         <div class="heart-container" onclick="fillHeart()">
             <svg viewBox="0 0 200 200" width="100%" height="100%">
@@ -269,7 +278,7 @@
         <div class="final-floaters" id="finalFloaters"></div>
         
         <div class="final-msg-box">
-            <h1>Happy Valentine's! 💖</h1>
+            <h1>Happy Anniversary💖</h1>
             <p>
                 4 anything 4u lany<br>
                 5 ครบรอบ1เดือนแล้วเย้้้้้้<br>
@@ -305,8 +314,7 @@
                 จนเราได้มาสนิทกัน<br>
                 ตอนไปเล่นบ้านลมกัน<br>
                 โคตรสนุกเลย<br>
-                เค้าชอบโมเม้นที่เรา<br>
-                อยู่ด้วยกันมากๆ<br>
+                เค้าชอบโมเม้นที่เราอยู่ด้วยกันมากๆ<br>
                 หัวเราะไปวันๆ<br>
                 ไปอ่านหนังสือกินข้าวแปรงฟัน<br>
                 เค้าไม่เคยคิดว่าจะมีอะไรแบบนี้เลย<br>
@@ -341,7 +349,7 @@
 
     <script>
         // --- CONFIG ---
-        const startDate = new Date(2026, 3, 18); // วันที่เริ่มคบกัน 18 เมษายน พ.ศ. 2569 (Month index เริ่มที่ 0 ดังนั้น 3 คือ เมษายน)
+        const startDate = new Date(2026, 3, 18); // วันที่เริ่มคบกัน 18 เมษายน พ.ศ. 2569 (Month index เริ่มที่ 0)
         const photos = [
             { src: "photo1.jpg", caption: "น่ารักกก" },
             { src: "photo2.jpg", caption: "ยิ้มหน่อยน้อง" },
@@ -436,7 +444,8 @@
                 ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(x,y,25,0,Math.PI*2); ctx.fill();
                 const d = ctx.getImageData(0,0,300,300).data; let t = 0;
                 for(let i=3; i<d.length; i+=4) if(d[i]===0) t++;
-                if(t/(300*300) > 0.6) { c.style.display = 'none'; setTimeout(() => goTo('page4'), 1000); }
+                // ปรับสัดส่วนการขูดเป็น > 0.85 (85%) เพื่อให้ขูดจนหมดใกล้สะอาดเรียบร้อยก่อนข้ามหน้า
+                if(t/(300*300) > 0.85) { c.style.display = 'none'; setTimeout(() => goTo('page4'), 1000); }
             }
             const down = () => isDrawing=true; const up = () => isDrawing=false;
             const move = (e) => { if(!isDrawing) return; const r = c.getBoundingClientRect(); scratch((e.touches?e.touches[0].clientX:e.clientX)-r.left, (e.touches?e.touches[0].clientY:e.clientY)-r.top); }
@@ -450,10 +459,21 @@
             currentPhotoIdx = idx; currentElement = el;
             document.getElementById('previewImg').src = photos[idx-1].src;
             document.getElementById('previewCaption').innerText = photos[idx-1].caption;
-            document.getElementById('previewModal').style.display = 'flex';
+            
+            // แสดงผล Modal ด้วย Transition ค่อยๆ เฟดและขยายตัว
+            const modal = document.getElementById('previewModal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show-modal');
+            }, 10);
         }
         function confirmKeep() {
-            document.getElementById('previewModal').style.display = 'none';
+            const modal = document.getElementById('previewModal');
+            modal.classList.remove('show-modal');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+
             currentElement.style.opacity = '0'; currentElement.style.transform = 'scale(0)';
             setTimeout(() => {
                 const slot = document.getElementById('slot' + currentPhotoIdx);
